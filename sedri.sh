@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "Please enter the number of records to be indexed into IDOL,the unit is MILLION."
+echo "Please enter the number of records to be indexed into xxxx,the unit is MILLION."
 
 read Record_Number
 if [[ ${Record_Number} =~ ^[0-9]+$ ]]
