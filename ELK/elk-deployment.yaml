@@ -1,0 +1,86 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: elk-deployment
+spec:
+  serviceName: "elk"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: elk
+      annotations:
+        pod.beta.kubernetes.io/init-containers: '[
+          {
+          "name": "sysctl",
+            "image": "shc-harbor-dev.hpeswlab.net/itsma/alpine:3.6",
+            "imagePullPolicy": "IfNotPresent",
+            "command": ["sysctl", "-w", "vm.max_map_count=262144"],
+            "securityContext": {
+              "privileged": true
+            }
+          }
+        ]'
+    spec:
+      containers:
+        - name: elasticsearch
+          image: shc-harbor-dev.hpeswlab.net/itsma/elk-es:0830
+          ports:
+          - containerPort: 9200
+          volumeMounts:
+            - name: es-storage
+              mountPath: /usr/share/elasticsearch/data
+          env:
+          - name: ES_JAVA_OPTS
+            value: "-Xms1g -Xmx1g"
+          resources:
+            limits:
+              cpu: 1
+              memory: 2048Mi
+          imagePullPolicy: Always
+        - name: logstash
+          image: shc-harbor-dev.hpeswlab.net/itsma/elk-logstash:0830
+          ports:
+          - containerPort: 5044
+          resources:
+            limits:
+              cpu: 500m
+              memory: 1024Mi
+          imagePullPolicy: Always
+        - name: kibana
+          image: shc-harbor-dev.hpeswlab.net/itsma/elk-kibana:0830
+          ports:
+          - containerPort: 5601
+          resources:
+            limits:
+              cpu: 333m
+              memory: 512Mi
+          env:
+          - name: ELASTICSEARCH_URL
+            value: http://127.0.0.1:9200
+          imagePullPolicy: Always
+        - name: curator
+          image: shc-harbor-dev.hpeswlab.net/itsma/elk-curator:0830
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi
+          env:
+          - name: REMOVE_INDICES_OLDER_THAN_DAYS
+            value: "5"
+          imagePullPolicy: Always
+          #for local
+#      volumes:
+#      - name: es-storage
+#        emptyDir: {}
+        #for aws
+  volumeClaimTemplates:
+  - metadata:
+      name: es-storage
+      annotations:
+        volume.beta.kubernetes.io/storage-class: elk-gp2
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 20Gi

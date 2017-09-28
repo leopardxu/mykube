@@ -1,0 +1,12 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: kibana-service
+spec:
+  type: NodePort
+  selector:
+    app: elk
+  ports:
+    - port: 5601
+      name: kibana
+      nodePort: 30601

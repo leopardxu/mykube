@@ -1,0 +1,87 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: filebeat
+  labels:
+    app: filebeat
+  namespace: logging
+spec:
+  template:
+    metadata:
+      labels:
+        app: filebeat
+      name: filebeat
+    spec:
+      containers:
+      - name: filebeat
+        image: shc-harbor-dev.hpeswlab.net/itsma/filebeat:5.5.2
+        command:
+          - '/bin/sh'
+          - '-c'
+          - '/usr/share/filebeat/filebeat -e -c /etc/filebeat/filebeat.yml'
+        imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+        env:
+        - name: FILEBEAT_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log/containers
+        - name: filebeat-conf
+          mountPath: /etc/filebeat
+          readOnly: true
+        - name: varlibdockercontainers
+          mountPath: /opt/kubernetes/data/docker/containers
+          readOnly: true
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log/containers
+      - name: varlibdockercontainers
+        hostPath:
+          path: /opt/kubernetes/data/docker/containers
+      - name: filebeat-conf
+        configMap:
+          name: filebeat-conf
+      securityContext:
+        runAsUser: 0
+---
+apiVersion: v1
+data:
+  filebeat.yml: |
+    filebeat.registry_file: /var/log/containers/filebeat_registry
+    filebeat.prospectors:
+    -
+      paths:
+        - "/var/log/containers/*.log"
+      symlinks: true
+      json.message_key: log
+      json.keys_under_root: true
+      json.add_error_key: true
+      multiline.pattern: '\](\s{2,}|\s{1}\{|\s{1}\})'
+      multiline.negate: false
+      multiline.match: after
+      document_type: kube-logs
+      fields:
+        host: ${FILEBEAT_HOST:${HOSTNAME}}
+      fields_under_root: true
+
+    output.elasticsearch:
+      hosts: ["elasticsearch:9200"]
+      username: "elastic"
+      password: "changeme"
+
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: filebeat-conf
+  namespace: logging

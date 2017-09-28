@@ -1,0 +1,61 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: elasticsearch
+  namespace: logging
+  labels:
+    app: elasticsearch
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: elasticsearch
+      labels:
+        app: elasticsearch
+    spec:
+      nodeSelector:
+        master: "true"
+      containers:
+      - name: elasticsearch
+        image: shc-harbor-dev.hpeswlab.net/itsma/elasticsearch:5.5.2
+        ports:
+        - containerPort: 9200
+        - containerPort: 9300
+        env:
+        - name: ES_JAVA_OPTS
+          value: "-Xms2g -Xmx2g"
+        - name: ELASTIC_PASSWORD
+          value: changeme
+        - name: ALLOW_INSECURE_DEFAULT_TLS_CERT
+          value: "true"
+        volumeMounts:
+        - name: es-data
+          mountPath: /usr/share/elasticsearch/data
+      volumes:
+      - name: es-data
+        hostPath:
+  #        path: /tmp/elasticsearch
+        emptyDir: {}
+      initContainers:
+      - image: shc-harbor-dev.hpeswlab.net/itsma/alpine:3.6
+        command: ["/sbin/sysctl", "-w", "vm.max_map_count=262144"]
+        name: elasticsearch-logging-init
+        securityContext:
+          privileged: true
+#        persistentVolumeClaim:
+#          claimName: es-pv-claim
+#---
+#apiVersion: v1
+#kind: PersistentVolumeClaim
+#metadata:
+#  name: es-pv-claim
+#  labels:
+#    app: elasticsearch
+#spec:
+#    volumeName: itsma1-global-volume
+#  accessModes:
+#    - ReadWriteOnce
+#  resources:
+#    requests:
+#      storage: 2Gi

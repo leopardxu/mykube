@@ -1,0 +1,110 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: metricbeat-v5.2.2
+  namespace: logging
+  labels:
+    k8s-app: metricbeat
+    kubernetes.io/cluster-service: "true"
+    version: v5.2.2
+spec:
+  template:
+    metadata:
+      labels:
+        k8s-app: metricbeat
+        kubernetes.io/cluster-service: "true"
+    spec:
+      containers:
+      - name: metricbeat
+        image: shc-harbor-dev.hpeswlab.net/itsma/metricbeat:5.5.2
+        command:
+          - '/bin/sh'
+          - '-c'
+          - '/usr/share/metricbeat/metricbeat -e -c /etc/metricbeat/metricbeat.yml -system.hostfs=/hostfs'
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1000Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        volumeMounts:
+        - name: procpath
+          mountPath: /hostfs/proc
+          readOnly: true
+       # - name: cgroupPath
+       #   mountPath: /hostfs/sys/fs/cgroup
+          #readOnly: true
+        - name: dockersock
+          mountPath: /var/run
+        - name: varlogmetricbeat
+          mountPath: /var/log/metricbeat
+        - name: metricbeatconf
+          mountPath: /etc/metricbeat
+          readOnly: true
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: procpath
+        hostPath:
+          path: /proc
+    #  - name: cgroupPath
+    #    hostPath:
+    #      path: /sys/fs/cgroup
+      - name: dockersock
+        hostPath:
+          path: /var/run
+      - name: varlogmetricbeat
+        hostPath:
+          path: /var/log/metricbeat
+      - name: metricbeatconf
+        configMap:
+          name: metricbeat-conf
+      securityContext:
+        runAsUser: 0
+---
+apiVersion: v1
+data:
+  metricbeat.yml: |
+    metricbeat.modules:
+    - module: system
+      metricsets:
+      - cpu
+      - load
+      - memory
+      - network
+      - fsstat
+      - diskio
+      enabled: true
+      period: 20s
+      cpu_ticks: false
+      period: 20s
+      cpu_ticks: false
+    - module: docker
+      metricsets:
+      - container
+      - cpu
+      - diskio
+      - healthcheck
+      - info
+      - memory
+      - network
+      hosts: ["unix:///var/run/docker.sock"]
+      period: 20s
+    output.elasticsearch:
+      hosts: ["elasticsearch:9200"]
+      username: "elastic"
+      password: "changeme"
+    output.file:
+      path: "/out"
+      filename: metric.log
+
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: metricbeat-conf
+  namespace: logging
