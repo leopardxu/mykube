@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: metricbeat
-        image: shc-harbor-dev.hpeswlab.net/itsma/metricbeat:5.5.2
+        image: metricbeat:5.5.2
         command:
           - '/bin/sh'
           - '-c'

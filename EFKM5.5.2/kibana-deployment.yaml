@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: kibana
-        image: shc-harbor-dev.hpeswlab.net/itsma/kibana:5.5.2
+        image: kibana:5.5.2
         ports:
         - containerPort: 5601
         env:

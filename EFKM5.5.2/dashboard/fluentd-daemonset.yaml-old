@@ -12,7 +12,7 @@ spec:
     spec:
       containers:
       - name: fluentd
-        image: shc-harbor-dev.hpeswlab.net/itsma/fluentd-elasticsearch:0913
+        image: fluentd-elasticsearch:0913
         env:
         - name: FLUENT_ELASTICSEARCH_HOST
           value: elasticsearch

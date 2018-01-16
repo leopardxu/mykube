@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
       - name: filebeat
-        image: shc-harbor-dev.hpeswlab.net/itsma/elk-filebeat:0830
+        image: elk-filebeat:0830
         imagePullPolicy: Always
         resources:
           limits:

@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: filebeat
-        image: shc-harbor-dev.hpeswlab.net/itsma/filebeat:5.5.2
+        image: filebeat:5.5.2
         command:
           - '/bin/sh'
           - '-c'
