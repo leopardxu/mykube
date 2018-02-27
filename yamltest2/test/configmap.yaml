@@ -1,0 +1,363 @@
+#configmap for ITSM
+# see https://github.com/kubernetes/contrib/blob/master/ingress/controllers/nginx/configuration.md#allowed-parameters-in-configuration-config-map
+apiVersion: v1
+data:
+  enable-vts-status: "true"
+  body-size: 64m
+kind: ConfigMap
+metadata:
+  name: nginx-load-balancer-conf
+  namespace: itsma 
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: external-lb-config
+  namespace: itsma
+data:
+  host: sm-ingress-svc.itsma.svc.cluster.local
+  port: "80" 
+
+---
+#below section ss.properties is defined by Shared service team
+apiVersion: v1
+kind: ConfigMap
+metadata: 
+  name: shared-service-configmap
+  namespace: itsma
+data: 
+  ss.properties: |- 
+    FullTextSearch_Server_URL=http://${am_fulltextsearch_server_url}/quicksearch/search
+
+---
+#below section idm configmap is defined by ITSAM suite for Authentication and SSO
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: idm-config
+  namespace: "itsma"
+data:
+  idm_tenant: "ITSMA"
+  idm_token_signingkey: "idmtokensignningkey"
+  idm_endpoint: "https://idm-svc.itsma.svc.cluster.local:8443/idm-service"
+  idm_returnuri: "http://itsma-landing-page-svc.itsma.svc.cluster.local:8080/itsma"
+  auth_url: "http:\\/\\/auth-svc.itsma.svc.cluster.local:8080\\/sma-auth"
+  idm_external_ip: "127.0.0.1"
+  idm_external_name: "localhost"
+  idm_postgres_host: "idm-postgresql-svc.itsma.svc.cluster.local"
+  idm_postgres_username: "postgres"
+  idm_postgres_password: "postgres"
+  idm_seeded_dir: "/var/itsma/upload/seeded"
+  idm_server_cert_pfx: "${idm_server_cert_pfx}"
+  idm_server_cert_pass: "${idm_server_cert_pass}"
+  ldap_server: "openldap-svc.itsma.svc.cluster.local"
+  ldap_port: "389"
+  ldap_ssl: "false"
+  ldap_validatecert: "false"
+  ldap_basedir: "dc=itsma,dc=com"
+  ldap_group_base_filter: "(objectclass=groupOfUniqueNames)"
+  ldap_consumer_group: "itpeople"
+  ldap_mapattr: "uid"
+  ldap_binddn: "cn=admin,dc=itsma,dc=com"
+  ldap_bindpass: "secret"
+  lwsso_enable: "true"
+  lwsso_domain_external: "hpeswlab.net"
+  lwsso_domain_internal: "itsma.svc.cluster.local"
+  lwsso_init_str: "rqa9mkdmfkvdvienfj4usldo9205mvid"
+  lwsso_trust_host: "itsma.svc.cluster.local"
+  idm_data_upload_dir: idm/data/idmseeded
+  landing_page_url: "http://itsma-landing-page-svc.itsma.svc.cluster.local:8080/itsma"
+  auth_log_level: "${idm_auth_debug}" 
+  idm_log_level: "${idm_debug}" 
+  idmTransportUser_password: "idmTransportUser"
+  admin_password: "propel"
+  sxCatalogTransportUser_password: "sxCatalogTransportUser"
+  searchTransportUser_password: "searchTransportUser"
+  externalLinkTransportUser_password: "externalLinkTransportUser"
+---
+#below section ucmdb-configmap is defined by ITSMA suite for UCMDB parameters
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ucmdb-configmap
+  namespace: "itsma"
+data:
+  LDAP_ENABLED: "true"
+  LDAP_HOSTNAME: "openldap-svc.itsma.svc.cluster.local"
+  LDAP_URL: "ldap://openldap-svc.itsma.svc.cluster.local:389/dc=itsma,dc=com" 
+  LDAP_GROUP_BASE: "dc=itsma,dc=com"
+  LDAP_GROUP_BASE_FILTER: "(objectclass=groupOfUniqueNames)"
+  LDAP_ROOT_GROUP: "dc=itsma,dc=com"
+  LDAP_ROOT_GROUP_FILTER: "&((objectclass=groupOfUniqueNames)(cn=Group*))"
+  LDAP_USE_BOTTOM_UP_ALGORITHM: "false"
+  LDAP_SEARCH_USER: "cn=admin,dc=itsma,dc=com"
+  LDAP_SEARCH_USER_PASSWORD: "secret"
+  LDAP_DEFAULT_GROUP: "itpeople"
+  LDAP_USER_FILTER: "(&(uid=*)(objectclass=inetOrgPerson))"
+  LDAP_ENABLED_SEARCH_FOR_DN: "true"
+  LDAP_SEARCH_RETRIES_COUNT: "5"
+  LDAP_ROOT_SCOPE: "sub"
+  LDAP_GROUP_SCOPE: "sub"
+  LDAP_GROUP_CLASS: "groupOfUniqueNames"
+  LDAP_GROUP_DESC_ATTRIBUTE: "desc"
+  LDAP_GROUP_DISP_NAME_ATTRIBUTE: "cn"
+  LDAP_GROUP_MEMBER_ATTRIBUTE: "uniqueMember"
+  LDAP_GROUP_NAME: "itpeople"
+  LDAP_USER_DISP_NAME_ATTRIBUTE: "cn"
+  LDAP_USER_CLASS: "inetOrgPerson"
+  LDAP_USER_UID: "uid"
+  LDAP_PRIORITY: "5"
+  LDAP_ROLE_NAME: "SuperAdmin"
+  ucmdb_db_host: "postgresql-ucmdb-svc"  #default postgresql-ucmdb-svc
+  #ucmdb_db_host: postgresql-ucmdb-svc  #default postgresql-ucmdb-svc
+  ucmdb_db_port: "5432"  # default "5432"
+  #ucmdb_db_port: "5432"  # default "5432"
+  ucmdb_db_user: "postgres"  # default postgres
+  #ucmdb_db_user: postgres  # default postgres
+  ucmdb_db_userpwd: "postgresPass" #default postgresPass
+  #ucmdb_db_userpwd: postgresPass #default postgresPass
+  ucmdb_db_schema: "ucmdb"  #default ucmdb
+  #ucmdb_db_schema: ucmdb  #default ucmdb
+  ucmdb_db_type: "Postgresql" # default postgresql
+  #ucmdb_db_type: postgresql # default postgresql
+  ucmdb_probe_pg_root_pwd: admin
+  ucmdb_probe_pg_probe_pwd: admin
+  ucmdb_deploy_data: "TRUE"
+# for Oracle
+  ucmdb_oracle_db_schemapwd: "postgresPass"
+  ucmdb_oracle_db_sid: "ucmdb"
+#  ucmdb_oracle_db_default_table_space: ${ucmdb_oracle_db_default_table_space}
+#  ucmdb_oracle_db_temp_table_space: ${ucmdb_oracle_db_temp_table_space}
+  ucmdb_syspwd: sysadmin
+  ucmdb_pwd: admin
+  ucmdb_integration_user_pwd: Admin_1234
+  ucmdb_framing_host: http://demo-master.hpeswlab.net  #input the domain name of suite  www.xxx.com
+  ucmdb_browser_host: https://demo-master.hpeswlab.net
+  ucmdb_content_root: "/"
+  ucmdb_probe_min_mem: "512"
+  ucmdb_probe_max_mem: "2048"
+  ucmdb_server_max_memory: "7168"
+  cmdb_server_loglevel_api: "ERROR"
+  cmdb_server_loglevel_mam: "INFO"
+  cmdb_server_loglevel_security: "INFO"
+  cmdb_server_loglevel_framework: "ERROR"
+  cmdb_server_loglevel_cla: "INFO"
+  cmdb_server_loglevel_cmdb: "ERROR"
+  cmdb_server_loglevel_logstash_statistics_history: "ERROR"
+  cmdb_server_loglevel_notification: "INFO"
+  cmdb_server_loglevel_reconciliation: "ERROR"
+  cmdb_server_loglevel_tqlscheduler: "INFO"
+  cmdb_server_loglevel_framework_urmloglevel: "WARN"
+  cmdb_server_loglevel_soaapi: "ERROR"
+  cmdb_server_loglevel_security_cm: "INFO"
+  cmdb_server_loglevel_security_lwsso: "ERROR"
+  cmdb_server_loglevel_ui_server: "ERROR"
+  cmdb_server_loglevel_security_authorization: "INFO"
+  cmdb_server_loglevel_mam_web: "ERROR"
+  cmdb_server_loglevel_search: "INFO"
+  cmdb_server_loglevel_fcmdb: "INFO"
+  cmdb_server_loglevel_downgrade: "INFO"
+  cmdb_server_loglevel_quota: "INFO"
+  cmdb_server_loglevel_logstash_statistics_datain: "ERROR"
+  cmdb_server_loglevel_fcmdb_gdba: "ERROR"
+  cmdb_server_loglevel_fcmdb_push: "ERROR"
+  cmdb_server_loglevel_mam_monitoring: "INFO"
+  cmdb_server_loglevel_cmdb_multiple: "INFO"
+  cmdb_server_loglevel_security_wink: "ERROR"
+  cmdb_server_loglevel_uiserver_spring: "ERROR"
+  cmdb_server_loglevel_logstash_statistics_search: "ERROR"
+  cmdb_server_loglevel_logstash_statistics_search_tql: "ERROR"
+  cmdb_browser_loglevel_ucmdb: "WARN"
+  cmdb_browser_loglevel_ucmdb_search: "WARN"
+  cmdb_browser_loglevel_jvm_stats: "ERROR"
+  cmdb_browser_loglevel_statistics: "INFO"
+  cmdb_browser_loglevel_rpccalls: "INFO"
+  cmdb_ud_loglevel_discovery_framework: "INFO"
+  cmdb_ud_loglevel_discovery_library: "INFO"
+  cmdb_ud_loglevel_discovery_agents: "INFO"
+  cmdb_ud_loglevel_discovery_resultprocess: "INFO"
+  cmdb_ud_loglevel_discovery_dal: "INFO"
+  cmdb_ud_loglevel_discovery_workflow: "INFO"
+
+---
+#below section itsma-common-configmap is defined by ITSAM suite
+apiVersion: v1
+kind: ConfigMap
+metadata: 
+  name: itsma-common-configmap
+  namespace: itsma
+data: 
+#do not change !!!!!
+  sm_integration_user_pwd: Admin_1234
+  sysadmin_password: "password"
+  aplms_domain_name: "https://autopass-lm-svc.core:5814"
+  http_proxy: ""
+  https_proxy: ""
+  openldap_debug: "0"
+  time_zone: "${time_zone}"
+  #time_zone: "Asia/Shanghai"
+  itsma.properties: |-
+    Lwsso_Domain=hpeswlab.net
+    Lwsso_UserNameHeaderName=SM_USER
+    Lwsso_SharedEncryptionKey=${lwsso_init_str}
+    LWSSO_domain=hpeswlab.net
+    LWSSO_userNameHeaderName=SM_USER
+    LWSSO_initString=${lwsso_init_str}
+  email_smtp_server_name: "smtp.gmail.com"
+  email_smtp_server_port: "25"
+  email_smtp_server_usrname: "provencesdagent@gmail.com"
+  email_smtp_server_password: "Password$"
+  email_smtp_server_tls: "1"
+  email_smtp_server_ssl: "1"
+  email_smtp_server_ssl_port: "465"
+  email_smtp_server_mail_from: "provencesdagent@gmail.com"
+---
+#below section am-xxxx-configmap is defined by AM product
+apiVersion: v1
+kind: ConfigMap
+metadata: 
+  name: am-common-configmap
+  namespace: itsma
+data: 
+  common.properties: |- 
+    DB_engine=POSTGRES
+    DB_datasource=${db_datasource}
+    DB_login=${am_db_login}
+    DB_password=${am_db_password}
+    DB_library_path=/app/AssetManager/x64/libaamapi96.so
+    promptForPwd=false
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: 
+  name: am-websvc-configmap
+  namespace: itsma
+data: 
+  websvc.properties: |- 
+    WebService_LoadOnStartup=R961/*
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: 
+  name: am-webtier-configmap
+  namespace: itsma
+data: 
+  webtier.properties: |- 
+    WebService_Version=R961
+    FullTextSearch_Enabled=true
+    WebService_EndPoint_SOAP=http://am-websvc-svc:8081/AssetManagerWebService/services
+    WebService_EndPoint_REST=http://am-websvc-svc:8081/AssetManagerWebService/rest
+    WebService_EndPoint_RS=http://am-websvc-svc:8081/AssetManagerWebService/rs
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: 
+  name: am-apm-configmap
+  namespace: itsma
+data: 
+  apm.properties: |- 
+    AM_user=${am_user}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: 
+  name: am-ess-configmap
+  namespace: itsma
+data: 
+  ess.properties: |- 
+    ws_port=8081
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: 
+  name: am-quicksearch-configmap
+  namespace: itsma
+data: 
+  quicksearch.properties: |- 
+    WebService_LoadOnStartup=R961/*
+
+---
+#DONOT touch below section, it's AM private
+apiVersion: v1
+kind: ConfigMap
+metadata: 
+  name: am-private-configmap
+  namespace: itsma
+data: 
+  private.properties: |- 
+    promptForPwd=false
+    DB_library_path=/app/AssetManager/x64/libaamapi96.so
+    Lwsso_EnableLwssoFramework=true
+    org_owasp_csrfguard_Enabled=false
+    AssetManager_RecordSearchIndexDir=/app/index
+    Password_First_Value=bigintcs:006c33-713236-6a6461-346b34-6f6e64-366278-f578fc-7c966a-cd9050-81361b-d20387-AC614F
+    Password_Second_Value=bigintcs:006c33-713236-6a6461-346b34-6f6e64-36627b-7a8797-84bd9c-30af3b-9101c6-3897a7-59D53C
+---
+#below section sm-xxxx-configmap is defined by SM product
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sm-common-configmap
+  namespace: itsma
+data:
+  WEB_disable_AntiCSRF: "true" # used for PCoE test only, should be changed in product environment!!!
+  DB_engine: "Postgres"
+  DB_datasource: "${sm_db_server}"
+  DB_login: "${sm_db_login}"
+  DB_password: "${sm_db_password}"
+  DB_port: "${sm_db_port}"
+  DB_inst: "${sm_db_inst}"
+  RECONFIG_LDAP: "False"
+  enable_webtier_debug: "false"
+  enable_openfire_debug: "false"
+  enable_chatsvc_debug: "false"
+  RTE_debug_parms: ""
+  smsp_external_host: "https://demo-master.hpeswlab.net/propel"
+  sm_server_loglevel_sqllimit: "10"
+  sm_server_loglevel_debug_db_query: "5"
+  sm_server_loglevel_query_hash_code: "1"
+  sm_server_loglevel_dashboard_export_path: ""
+  sm_server_loglevel_cache_clean_interval: "3600"
+  sm_server_loglevel_webservices_session_timeout: "1800"
+  sm_server_loglevel_conection_timeout: "60000"
+  sm_server_loglevel_smart_email_timeout: ""
+  sm_server_loglevel_sql_debug: ""
+  sm_server_loglevel_debug_http: ""
+  sm_server_loglevel_debug_javascript: ""
+  sm_server_loglevel_debug_rest: ""
+  sm_server_loglevel_log_debug_level: ""
+  sm_server_loglevel_debug_jni: ""
+  sm_server_loglevel_log4j_debug: ""
+  sm_server_loglevel_enable_core_dump: ""
+  sm_server_loglevel_rtm: ""
+  sm_server_loglevel_max_log_size: ""
+  sm_server_loglevel_number_of_log_files: ""
+  sm_webtier_loglevel_session_timeout: "15"
+  sm_webtier_loglevel_view_record_list: "true"
+  sm_webtier_loglevel_customize_folder: ""
+  sm_webtier_loglevel_query_security: "true"
+  sm_webtier_loglevel_js_debug: "true"
+  sm_external_url: "https://demo-master.hpeswlab.net"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: itom-sma-smarta-configuration
+  namespace: itsma
+data:
+  smarta_loglevel: INFO
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: propel-configmap
+  namespace: itsma
+data:
+  propel_loglevel: INFO

@@ -1,0 +1,261 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: propel-survey-ui-svc
+    labels:
+    app: propel-survey-ui-svc
+  namespace: itsma
+spec:
+  ports:
+  - port: 9980
+  selector:
+    name: propel-survey-ui
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: propel-survey-ui
+  namespace: itsma
+  labels:
+    name: propel-survey-ui
+spec:
+  replicas: 1
+  selector:
+    name: propel-survey-ui
+  template:
+    metadata:
+      labels:
+        name: propel-survey-ui
+      annotations:
+           pod.boostport.com/vault-approle: itsma-propel
+           pod.boostport.com/vault-init-container: install
+           pod.beta.kubernetes.io/init-containers: '[
+          {
+            "name": "install",
+            "image": "localhost:5000/kubernetes-vault-init:0.2.1",
+            "env": [
+                {
+                    "name": "VAULT_ROLE_ID",
+                    "value": "9cb705fe-2985-9323-b08b-c000e61a82bc"
+                }
+            ],
+            "volumeMounts": [
+                {
+                    "name": "vault-token",
+                    "mountPath": "/var/run/secrets/boostport.com"
+                }
+            ]
+          }
+        ]'
+    spec:
+      nodeSelector:
+        Worker: label
+      containers:
+      - name: kubernetes-vault-renew
+        image: localhost:5000/kubernetes-vault-renew:0.2.1
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: vault-token
+          mountPath: /var/run/secrets/boostport.com
+      - name: propel-survey-ui
+        image: shc-harbor-dev.hpeswlab.net/itsma/itom-itsma-propel-survey-ui:2.20.3-SNAPSHOT
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            memory: "384Mi"
+            cpu: 0.1
+          limits:
+            memory: "448Mi"
+            cpu: 1
+        ports:
+        - containerPort: 9980
+        readinessProbe:
+          httpGet:
+            path: /propel/survey/healthcheck/ping
+            port: 9980
+            scheme: HTTP
+        livenessProbe:
+          httpGet:
+            path: /propel/survey/healthcheck/ping
+            port: 9980
+            scheme: HTTP
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: PROPEL_JUMPSTART_PWD_SECRET_KEY
+          value: propel_jumpstart_pwd_secret_key
+        - name: RABBIT_USER
+          valueFrom:
+            configMapKeyRef:
+              name: propel-rabbitmq-config
+              key: rabbit_user
+        - name: RABBIT_PASS_SECRET_KEY
+          value: rabbit_pass_secret_key
+        - name: IDM_TRANSPORT_USER_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: idm-config
+              key: idmTransportUser_password
+        - name: MEMORY_REQUEST
+          valueFrom:
+            resourceFieldRef:
+              resource: requests.memory
+        - name: PROPEL_LOGLEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: propel-configmap
+              key: propel_loglevel
+        volumeMounts:
+        - name: nfs
+          mountPath: /var/log/propel/survey-ui
+          subPath: logs/propel/survey-ui
+        - name: config-volume
+          mountPath: /opt/hp/propel/survey-ui/app.json
+          subPath: app.json
+        - name: vault-token
+          mountPath: /var/run/secrets/boostport.com
+      volumes:
+        - name: nfs
+          persistentVolumeClaim:
+            claimName: itsma-vol-claim
+        - name: config-volume
+          configMap:
+            name: propel-survey-ui-config
+        - name: vault-token
+          emptyDir: {}
+      securityContext:
+        fsGroup: 1999
+      imagePullSecrets:
+        - name: registrypullsecretd
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: propel-survey-ui-config
+  namespace: itsma
+data:
+  app.json: |-
+    {
+      "logger": {
+        "consoleEnabled": true,
+        "consoleLevel": "${PROPEL_FRONTEND_LOGLEVEL}",
+        "consoleColorize": false,
+        "consolePrettyPrint": true,
+        "fileEnabled": false,
+        "fileLevel": "${PROPEL_FRONTEND_LOGLEVEL}",
+        "fileLocation": "",
+        "fileMaxSize": 10485760,
+        "fileMaxFiles": 10
+      },
+      "server": {
+        "env": "production",
+        "https_enabled": false,
+        "defaultTenantName": "Provider",
+        "idmUrl": "https://demo-master.hpeswlab.net",
+        "idmContextPath": "/idm-service",
+        "idmReturnUrl": "https://demo-master.hpeswlab.net/propel/survey",
+        "idmUsername": "idmTransportUser",
+        "idmPassword": "${IDM_TRANSPORT_USER_PASSWORD}",
+        "idmStrictSsl": false,
+        "idmSecureProtocol": "TLSv1_method",
+        "idmCa": "/opt/hp/propel/security/CA.crt",
+        "ssoEntryPoint": false,
+        "enablePushNotification": true,
+        "contextPath": "/propel/survey"
+      },
+      "daemon": {
+        "name": "survey-ui",
+        "port": 9980,
+        "keyfile": "bin/keyfile",
+        "kekshare1": "bin/kekshare1",
+        "kekshare2": "bin/kekshare2",
+        "kekshare3": "bin/kekshare3",
+        "enableCluster": false
+      },
+      "gulp": {
+        "main": "serve",
+        "pathTemp": ".tmp",
+        "pathDist": "dist",
+        "pathTemplates": "templates",
+        "pathAssets": "assets",
+        "pathStyles": "styles",
+        "port": "9980",
+        "syncPort": "9990",
+        "browser": "default"
+      },
+      "localization": {
+        "localeCookieEnabled": true,
+        "localeCookieName": "LOCALE",
+        "rtlConfig": "conf/rtl.json"
+      },
+      "help": {
+        "entryPage": "TODO",
+        "defaultLocale": "en_US",
+        "pathContent": "dist/help"
+      },
+      "packager": {
+        "uglifyJs": true
+      },
+      "launchpad": {
+        "url": "http://propel-launchpad-svc:9000/propel/launchpad/api/launchpad",
+        "strictSSL": false,
+        "secureProtocol": "TLSv1_method",
+        "ca": "/opt/hp/propel/security/CA.crt",
+        "contextPath": "/"
+      },
+      "survey": {
+        "url": "http://propel-survey-svc:9981/v1/survey",
+        "strictSSL": false,
+        "secureProtocol": "TLSv1_method",
+        "ca": "/opt/hp/propel/security/CA.crt"
+      },
+      "globallist": {
+        "url": "http://propel-survey-svc:9981/v1/gl",
+        "strictSSL": false,
+        "secureProtocol": "TLSv1_method",
+        "ca": "/opt/hp/propel/security/CA.crt"
+      },
+      "autopass": {
+        "url": "http://propel-autopass-svc:9444/autopass/api",
+        "strictSSL": false,
+        "secureProtocol": "TLSv1_method",
+        "ca": "/opt/hp/propel/security/CA.crt"
+      },
+      "session": {
+        "sessionTimeoutDuration": 1800,
+        "sessionCookieSecret": "enc(iePGD66BwmjQc4j28k65BA==)",
+        "sessionCookieName": "survey-server",
+        "enablePersistence": true,
+        "connectionClientType": "pg",
+        "connectionHost": "propel-postgresql-svc",
+        "connectionPort": 5432,
+        "enableSslConnection": false,
+        "connectionUsername": "jumpstart",
+        "connectionPassword": "${JUMPSTART_PASSWORD}",
+        "connectionDbName": "jumpstart",
+        "connectionDbTableName": "sessions"
+      },
+      "notificationBus": {
+        "protocol": "amqp",
+        "hostname": "propel-rabbitmq-svc",
+        "port": 5672,
+        "username": "${RABBIT_USER}",
+        "password": "${RABBIT_PASSWORD}",
+        "exchange": "propel.ui.notification.exchange",
+        "strictSSL": false,
+        "secureProtocol": "TLSv1_method",
+        "ca": "/opt/hp/propel/security/CA.crt"
+      },
+      "notification": {
+        "url": "http://propel-notification-svc:9050",
+        "strictSSL": false,
+        "secureProtocol": "TLSv1_method",
+        "ca": "/opt/hp/propel/security/CA.crt"
+      },
+      "client": {
+        "sessionExpiryCheckInterval": 5000,
+        "sessionInactiveWarningTimeout": 1680000,
+        "sessionIframeReloadInterval": 300000,
+        "sessionServerPingInterval": 300000,
+        "sessionUserActivityWatchThrottle": 30000
+      }
+    }

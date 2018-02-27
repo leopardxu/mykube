@@ -1,0 +1,16 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: itsmapv
+  labels:
+    storetype: nfs
+spec:
+  capacity:
+    storage: 20Gi
+    accessModes:
+    - ReadWriteOnce
+    persistentVolumeReclaimPolicy: Delete
+nfs:
+  server: 16.155.195.69
+  path: "/var/vols/itom/itsma/itsma-itsma"
+
