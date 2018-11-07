@@ -1,0 +1,10 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: logstash-service
+spec:
+  selector:
+    app: elk
+  ports:
+    - port: 5044
+      name: logstash

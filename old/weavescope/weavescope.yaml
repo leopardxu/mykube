@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: List
+items:
+  - metadata:
+      labels:
+        app: weavescope
+        weavescope-component: weavescope-app
+      name: weavescope-app
+    apiVersion: apps/v1beta1
+    kind: Deployment
+    spec:
+      replicas: 1
+      template:
+        metadata:
+          labels:
+            app: weavescope
+            weavescope-component: weavescope-app
+        spec:
+          containers:
+            - name: weavescope-app
+              image: 'shc-harbor-dev.hpeswlab.net/itsma/weaveworksscope:1.9.0'
+              args:
+                - '--no-probe'
+                - '--weave=false'
+              env: []
+              ports:
+                - containerPort: 4040
+          nodeSelector:
+            master: 'true'
+  - metadata:
+      labels:
+        app: weavescope
+        weavescope-component: weavescope-app
+      name: weavescope-app
+    apiVersion: v1
+    kind: Service
+    spec:
+      type: NodePort
+      ports:
+        - name: app
+          port: 4040
+          targetPort: 4040
+          nodePort: 30044
+          protocol: TCP
+      sessionAffinity: ClientIP
+      selector:
+        app: weavescope
+        weavescope-component: weavescope-app
+  - metadata:
+      labels:
+        app: weavescope
+        weavescope-component: weavescope-probe
+      name: weavescope-probe
+    apiVersion: extensions/v1beta1
+    kind: DaemonSet
+    spec:
+      template:
+        metadata:
+          labels:
+            app: weavescope
+            weavescope-component: weavescope-probe
+        spec:
+          hostPID: true
+          hostNetwork: true
+          containers:
+            - name: weavescope-probe
+              image: 'shc-harbor-dev.hpeswlab.net/itsma/weaveworksscope:1.9.0'
+              args:
+                - '--no-app'
+                - '--probe.docker.bridge=docker0'
+                - '--probe.docker=true'
+                - '--probe.kubernetes=true'
+                - '$(WEAVESCOPE_APP_SERVICE_HOST):4040'
+              env:
+                - name: KUBERNETES_HOSTNAME
+                  valueFrom:
+                    fieldRef:
+                      apiVersion: v1
+                      fieldPath: spec.nodeName
+    #          securityContext:
+    #           privileged: true
+              resources:
+                limits:
+                  cpu: 150m
+              volumeMounts:
+                - name: docker-sock
+                  mountPath: /var/run/docker.sock
+          volumes:
+            - name: docker-sock
+              hostPath:
+                path: /var/run/docker.sock

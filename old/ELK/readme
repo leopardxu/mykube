@@ -1,0 +1,5 @@
+1. it is success in local enviroment if storage become empty:{};
+2. kubectl create -f ../ELK/;
+3. http://{hostname}:30601 ;
+4. there is no suitable dashboard;
+   
